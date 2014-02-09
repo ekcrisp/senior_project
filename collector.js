@@ -56,7 +56,7 @@ var checkNode = function(tempNode) {
 };
 
 var checkTraversal = function(tList, url) {
-    //checks if a traversal is in a particular nodes traversal list
+    //checks if a traversal is in a particular nodes' traversal list, returns the traversal object if it is there, returns null otherwise
     for (var i = 0; i<tList.length; i++) {
         if ((tList[i].node1.url == url) || (tList[i].node2.url == url)) {
             return tList[i];
@@ -67,6 +67,8 @@ var checkTraversal = function(tList, url) {
 
 
 var action = function(tab, type) {
+    //meat of the collector.js backgroud script, gets called whenever pages are loaded and constructs the information gathered by page loads
+
     log += "action " + actionNum + "  --  " + type + "\n";
     actionNum++;
 
@@ -79,14 +81,18 @@ var action = function(tab, type) {
     
 
     if (!((curNode.title == "") || (curNode.title == "") || (curNode.title.substring(0,22) == "https://www.google.com")|| (curNode.title.substring(0,22) == "https://www.google.com")  || (curNode.title.substring(0,14) == "www.google.com") || (curNode.title.substring(0,14) == "www.google.com") || curNode.title.substring(0,16) == "chrome-extension" || curNode.title == "GraphsGraphsGraphs" || curNode.title == "Your Titles" ) ) {
-            
-        if (prevNode!=null) {
+        //TODO better handling of corner cases
+
+        if (prevNode!=null) { //not the first page
             
             if (prevNode.url != curNode.url) { //check page isn't being refreshed
 
+                
+                //used only for print statements
                 var time = (new Date()).getTime();
-                dddd = new Date();
+                dddd = new Date(); 
                 dddd.setTime(time);
+
 
                 var check = checkNode(curNode);
                 if (check!=null) {
@@ -94,11 +100,6 @@ var action = function(tab, type) {
 
                     curNode = check;
                     var traverseCheck = checkTraversal(curNode.traversalList, prevNode.url);
-                    //log += "\n\n TRAVERSAL LIST \n"; 
-                    //for (var i =0; i< curNode.traversalList.length; i++) {
-                        //log += i + ": N1" + curNode.traversalList[i].node1.url + "    N2 " + curNode.traversalList[i].node2.url + "\n";
-                   // } 
-                    //log += " prevnodeURL -  " + prevNode.url + "\n\n";
 
                     if (traverseCheck!=null) { //this traversal already exists
                         log+= "existing traversal\n";
@@ -108,7 +109,7 @@ var action = function(tab, type) {
 
                         if (type == "onActivated") {
                             tempTraversal.typeList.push("highlight");
-                            log+= "From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
+                            log+= "EXISTING HIGHLIGHT From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
                             graphicNodeList.push({from: simplifyNode(prevNode), to: simplifyNode(curNode), color: "gray"});
                             prevTimestamp.end = time;
                             tempTimestamp.start = time;
@@ -117,7 +118,7 @@ var action = function(tab, type) {
                         }
                         else if (type == "onCurrentUpdated") {
                             tempTraversal.typeList.push("hardLink");
-                            log+= "From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
+                            log+= "EXISTING HARDLINK From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
                             graphicNodeList.push({from: simplifyNode(prevNode), to: simplifyNode(curNode), color: "black"});
                             prevTimestamp.end = time;
                             tempTimestamp.start = time;
@@ -126,7 +127,7 @@ var action = function(tab, type) {
                         }
                         else if (type == "onOtherUpdated") {
                             tempTraversal.typeList.push("softLink");
-                            log+= "From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " +dddd.toTimeString();
+                            log+= "EXISTING SOFTLINK From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " +dddd.toTimeString();
                             graphicNodeList.push({from: simplifyNode(prevNode), to: simplifyNode(curNode), color: "black"});
                         }
                         log += "\n\n";
@@ -138,12 +139,12 @@ var action = function(tab, type) {
                             traverseCheck.directionList.push(1);
                         }
                         else {
-                            log += "should never happen";
+                            log += "should never happen!";
                         }
 
 
                     }
-                    else { //this is a new traversal
+                    else { //this is a new traversal, existing nodes
                         tempTraversal.node1 = prevNode;
                         tempTraversal.node2 = curNode;
 
@@ -151,7 +152,7 @@ var action = function(tab, type) {
 
                         if (type == "onActivated") {
                             tempTraversal.typeList.push("highlight");
-                            log+= "From: " + prevNode.title + "  ----- To: " + curNode.title +  "  --  " +dddd.toTimeString();
+                            log+= "HALFNEW HIGHLIGHT From: " + prevNode.title + "  ----- To: " + curNode.title +  "  --  " +dddd.toTimeString();
                             graphicNodeList.push({from: simplifyNode(prevNode), to: simplifyNode(curNode), color: "gray"});
                             prevTimestamp.end = time;
                             tempTimestamp.start = time;
@@ -160,7 +161,7 @@ var action = function(tab, type) {
                         }
                         else if (type == "onCurrentUpdated") {
                             tempTraversal.typeList.push("hardLink");
-                            log+= "From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
+                            log+= "HALFNEW HARDLINK From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
                             graphicNodeList.push({from: simplifyNode(prevNode), to: simplifyNode(curNode), color: "black"});
                             prevTimestamp.end = time;
                             tempTimestamp.start = time;
@@ -169,7 +170,7 @@ var action = function(tab, type) {
                         }
                         else if (type == "onOtherUpdated") {
                             tempTraversal.typeList.push("softLink");
-                            log+= "From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
+                            log+= "HALFNEW SOFTLINK From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
                             graphicNodeList.push({from: simplifyNode(prevNode), to: simplifyNode(curNode), color: "black"});
                         }
                         log += "\n\n";
@@ -194,7 +195,7 @@ var action = function(tab, type) {
                     if (type == "onActivated") { 
                         //only happens if someone highlights a page before it has finished loading
                         tempTraversal.typeList.push("highlight");
-                        log+= "ON ACTIVATED From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
+                        log+= "NEW HIGHLIGH From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
                         curNode.group = prevNode.group;
                         curNode.groupID = prevNode.groupID++;
                         curNode.nextGroup = prevNode.nextGroup + 1;
@@ -206,7 +207,7 @@ var action = function(tab, type) {
                     }
                     else if (type == "onCurrentUpdated") {
                         tempTraversal.typeList.push("hardLink");
-                        log+= "ON CURRENT From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
+                        log+= "NEW HARDLINK From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
                         curNode.group = prevNode.group + 1;
                         groupSizes.push(1);
                         prevNode.nextGroup++;
@@ -221,7 +222,7 @@ var action = function(tab, type) {
                     }
                     else if (type == "onOtherUpdated") {
                         tempTraversal.typeList.push("softLink");
-                        log+= "ON OTHER From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
+                        log+= "NEW SOFTLINK ON OTHER From: " + prevNode.title + "  ----- To: " + curNode.title + "  --  " + dddd.toTimeString();
                         curNode.group = prevNode.group;
                         groupSizes[curNode.group]++;
                         curNode.nextGroup = prevNode.nextGroup;
