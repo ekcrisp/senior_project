@@ -15,8 +15,7 @@ projector = new THREE.Projector(),
 objectSelected, objectIntersected,
 plane = null,
 currentObject = null,
-pairList = new Array(),
-testPyramid = null;
+edgeList = null;
 
 function getRandomColor() {
     var letters = '0123456789ABCDEF'.split('');
@@ -121,30 +120,29 @@ function getGroupCenter(n) {
 
 
 function generateGraph(data, dataSize) {
-    //takes adge pair list from the collecter and generates the graph
-    console.log("datLen: " + data.length);
+    //takes edge pair list from the collecter and generates the graph
+    edgeList = data;
+
+    console.log("datLen: " + data.length + "   dataSize: " + dataSize);
     console.log("from: "+data[0].from.title + "  "+ data[0].from.group + " " + data[0].from.groupID + " " + data[0].from.groupSize + "  to: " + data[0].to.title  + "  "+ data[0].to.group + " " + data[0].to.groupID + " " + data[0].to.groupSize );
     
 
     console.log("DATATATATATATAT -== = -- " + dataSize);
 
-    var first = new node(data[0].from.title, data[0].from.group, data[0].from.groupID, data[0].from.groupSize, data[0].from.infoString, getRandomColor());
+    var first = new node(data[0].from, data[0].from.group, data[0].from.groupID, data[0].from.groupSize, data[0].from.infoString, getRandomColor());
     first.initialize();
     nodes.push(first);
     first.setCoords( 0, 0, (first.group * -300) + 300 );
     console.log( 0+" , " + 0 + " , " +first.group);
 
 
-    var second = new node(data[0].to.title, data[0].to.group, data[0].to.groupID, data[0].to.groupSize, data[0].to.infoString, getRandomColor());
+    var second = new node(data[0].to, data[0].to.group, data[0].to.groupID, data[0].to.groupSize, data[0].to.infoString, getRandomColor());
     second.initialize();
     nodes.push(second);
 
     second.setCoords( (Math.random()*400 - 200), (Math.random()*400 - 200),  (second.group * -300) + 300 );
     
     console.log(first.x + (Math.random()*200 - 100)+" , " + first.y + (Math.random()*200 - 100)+ " , " +second.group);
-
-   //pairList.push([data[0].from.url, data[0].to.url]);
-    
     
     addEdge(first, second, data[0].color);
     
@@ -156,7 +154,7 @@ function generateGraph(data, dataSize) {
             addEdge(first, second, data[i].color);
         }
         else if (first!=null) {
-            second = new node(data[i].to.title, data[i].to.group, data[i].to.groupID, data[i].to.groupSize, data[i].to.infoString, getRandomColor());
+            second = new node(data[i].to, data[i].to.group, data[i].to.groupID, data[i].to.groupSize, data[i].to.infoString, getRandomColor());
             second.initialize();
             nodes.push(second);
             if (second.groupID == 0) {
@@ -173,7 +171,7 @@ function generateGraph(data, dataSize) {
             addEdge(first, second, data[i].color);
         }
         else if (second!=null) {
-            first = new node(data[i].from.title, data[i].from.group, data[i].from.groupID, data[i].from.groupSize, data[i].from.infoString , getRandomColor());
+            first = new node(data[i].from, data[i].from.group, data[i].from.groupID, data[i].from.groupSize, data[i].from.infoString , getRandomColor());
             first.initialize();
             nodes.push(first);
             if (first.groupID == 0) {
@@ -194,18 +192,23 @@ function generateGraph(data, dataSize) {
         console.log();
     }
 
-    for (var i = 0; i<nodes.length; i++) {
-        console.log("iiii: " + i + "   \n");
-        console.log(nodes[i]);
-    }
-
     updateLabels();
+
+    var mostRecent = getNode(edgeList[edgeList.length - 1].to.title);
+
+    console.log(edgeList);
+    console.log("//////////////////////////////////blah");
+    console.log(mostRecent);
+
+    controls.target.set(mostRecent.x, mostRecent.y, mostRecent.z);
 
 }
 
-function node(n, g, gID, gS, infoSt, c) {
+function node(relatedNodey, g, gID, gS, infoSt, c) {
     this.color = c;
-    this.name = n;
+    this.relatedNode = relatedNodey;
+    this.name = this.relatedNode.title;
+    this.url = this.relatedNode.url;
     this.x = 0;
     this.y = 0;
     this.z = 0;
