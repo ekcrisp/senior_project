@@ -15,7 +15,9 @@ projector = new THREE.Projector(),
 objectSelected, objectIntersected,
 plane = null,
 currentObject = null,
-edgeList = null;
+edgeList = null,
+curEdgeIndex = 0,
+curNode = null;
 
 function getRandomColor() {
     var letters = '0123456789ABCDEF'.split('');
@@ -194,13 +196,19 @@ function generateGraph(data, dataSize) {
 
     updateLabels();
 
-    var mostRecent = getNode(edgeList[edgeList.length - 1].to.title);
 
-    console.log(edgeList);
-    console.log("//////////////////////////////////blah");
-    console.log(mostRecent);
+    curEdgeIndex = edgeList.length - 1;
 
-    controls.target.set(mostRecent.x, mostRecent.y, mostRecent.z);
+    curNode = getNode(edgeList[curEdgeIndex].to.title);
+
+    cameraTarget(curNode);
+
+    updateSidebar(curNode.relatedNode);
+
+    $("#forwardButton").click(goForward);
+    $("#backButton").click(goBackward);
+
+
 
 }
 
@@ -442,8 +450,6 @@ function onMouseDown(event)
 
                     //intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
                     controls.target.set(intersects[0].object.nodey.x,intersects[0].object.nodey.y,intersects[0].object.nodey.z)
-                    console.log(intersects[0].object.nodey.infoString);
-
                     //controls.center = new THREE.Vector3(intersects[0].object.nodey.x,intersects[0].object.nodey.y,intersects[0].object.nodey.z);
                     //camera.lookAt(new THREE.Vector3(intersects[0].object.nodey.x,intersects[0].object.nodey.y,intersects[0].object.nodey.z));
                     //var particle = new THREE.Sprite( particleMaterial );
@@ -478,12 +484,74 @@ function onMouseMove( event ) {
     
 }
 
+function goForward() {
+    var foundNext = false;
+    var startIndex = curEdgeIndex;
+    while (!foundNext) {
+        if (curEdgeIndex<0) {
+            if (edgeList[++curEdgeIndex].type != "onOtherUpdated") {
+                curNode = getNode(edgeList[curEdgeIndex].to.title);
+                cameraTarget(curNode);
+                foundNext = true;
+            }
+        }
+        else if (curEdgeIndex<(edgeList.length - 1)) {
+            if (edgeList[++curEdgeIndex].type != "onOtherUpdated") {
+                curNode = getNode(edgeList[curEdgeIndex].to.title);
+                cameraTarget(curNode);
+                foundNext = true;
+            }
+        }
+        else {
+            curEdgeIndex = startIndex;
+            break;
+        }
+    }
+}
+
+function goBackward() {
+    var foundNext = false;
+    var startIndex = curEdgeIndex;
+    while (!foundNext) {
+        if (curEdgeIndex>0) {
+            if (edgeList[--curEdgeIndex].type != "onOtherUpdated") {
+                curNode = getNode(edgeList[curEdgeIndex].to.title);
+                cameraTarget(curNode);
+                foundNext = true;
+            }
+        }
+        else if (curEdgeIndex==0) {
+            if (edgeList[curEdgeIndex].type != "onOtherUpdated") {
+                curNode = getNode(edgeList[--curEdgeIndex + 1].from.title);
+                cameraTarget(curNode);
+                foundNext = true;
+            }
+        }
+        else {
+            curEdgeIndex = startIndex
+            break;
+        }
+    }
+
+}
+
+function cameraTarget(node) {
+
+    controls.target.set(node.x, node.y, node.z);
+
+}
+
+function updateSidebar(relatedNode) {
+    $("#title").html(curNode.relatedNode.title);
+    $("#url").html(curNode.relatedNode.url);
+    
+
+}
 
 function runIt() {
    // Render the scene
-    
+
     requestAnimationFrame(runIt);
-    
     
     renderer.render( scene, camera );
 
@@ -491,6 +559,9 @@ function runIt() {
     stats.update();
      
 }
+
+
+
 
 
 
