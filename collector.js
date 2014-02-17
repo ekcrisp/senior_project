@@ -3,12 +3,9 @@ var nodeList = new Array();
 var prevNode = null;
 var prevVisitTimestamp = null;
 var prevLoadTimestamp = null;
-var prevVisitTimestampDisplay = null;
-var prevLoadTimestampDisplay = null;
 var groupSizes = new Array();
 
 function Timestamp() {
-    //keeps track of how long someones stays on a page
     this.start = null;
     this.end = null;
 };
@@ -21,17 +18,16 @@ function Node() {
 	this.visits = 0;
 	this.visitTimestamps = new Array();
 	this.loadTimestamps = new Array();
+	this.idleTimestamps = new Array();
 	this.refreshes = new Array();
 	this.completedLoads = new Array();
 
-	//properties for drawing the graph and displaying information
+	//properties used for drawing the graph
 	this.group = 0;
     this.groupID = 0;
     this.nextGroup = 0;
     this.nextGroupID = 0;
     this.groupSize = 0;
-    this.visitTimestampsDisplay = new Array();
-	this.loadTimestampsDisplay = new Array();
 
 
 }
@@ -49,7 +45,6 @@ function findNode(url) {
 function action(tab, type, completed) {
 	//meat of the collector, gets called whenever a page is highlighted, or loaded
 	var curTime = (new Date()).getTime();
-	var curTimeDisplay = (new Date(curTime)).toUTCString();
 
 	if (prevNode==null) {
 		//this is the first page load
@@ -69,13 +64,7 @@ function action(tab, type, completed) {
         groupSizes.push(1);
         curNode.groupID = 0;
         curNode.nextGroup = 1;
-        curNode.nextGroupID = 1;
-        var curLoadTimestampDisplay = new Timestamp();
-		curLoadTimestampDisplay.start = curTimeDisplay;
-		var curVisitTimestampDisplay = new Timestamp();
-		curVisitTimestampDisplay.start = curTimeDisplay;
-		curNode.visitTimestampsDisplay.push(curVisitTimestampDisplay);
-		curNode.loadTimestampsDisplay.push(curLoadTimestampDisplay);		
+        curNode.nextGroupID = 1;	
 
 		nodeList.push(curNode);
         prevNode = curNode;
@@ -92,7 +81,6 @@ function action(tab, type, completed) {
 			}
 			curNode.title = tab.title;
 			curNode.loadTimestamps[curNode.loadTimestamps.length - 1].end = curTime;
-			curNode.loadTimestampsDisplay[curNode.loadTimestampsDisplay.length - 1].end = curTimeDisplay;
 			curNode.completedLoads[curNode.completedLoads.length - 1] = true;
 			return;
 
@@ -108,9 +96,6 @@ function action(tab, type, completed) {
 				var curLoadTimestamp = new Timestamp();
 				curLoadTimestamp.start = curTime;
 				curNode.loadTimestamps.push(curLoadTimestamp);
-				var curLoadTimestampDisplay = new Timestamp();
-				curLoadTimestampDisplay.start = curTimeDisplay;
-				curNode.loadTimestampsDisplay.push(curLoadTimestampDisplay);
 
 				if (type=="onCurrentUpdated") {
 					var curVisitTimestamp = new Timestamp();
@@ -124,10 +109,6 @@ function action(tab, type, completed) {
 			        curNode.groupID = 0;
 			        curNode.nextGroup = prevNode.nextGroup + 1;
 			        curNode.nextGroupID = 1;
-			        
-					var curVisitTimestampDisplay = new Timestamp();
-					curVisitTimestampDisplay.start = curTimeDisplay;
-					curNode.visitTimestampsDisplay.push(curVisitTimestampDisplay);
 
 					prevNode.visitTimestamps[prevNode.visitTimestamps.length - 1].end = curTime;
 
@@ -145,8 +126,6 @@ function action(tab, type, completed) {
 
 			        curNode.completedLoads.push( false);
 
-					prevNode.visitTimestamps[prevNode.visitTimestamps.length-1].end = curTime;
-
 					nodeList.push(curNode);
 					edgeList.push({from: prevNode, to: curNode, type: "onOtherUpdated", color: "black"})	
 			        
@@ -163,9 +142,6 @@ function action(tab, type, completed) {
 				var curLoadTimestamp = new Timestamp();
 				curLoadTimestamp.start = curTime;
 				curNode.loadTimestamps.push(curLoadTimestamp);
-				var curLoadTimestampDisplay = new Timestamp();
-				curLoadTimestampDisplay.start = curTimeDisplay;
-				curNode.loadTimestampsDisplay.push(curLoadTimestampDisplay);
 
 			}
 			else { //this node already exists
@@ -175,19 +151,12 @@ function action(tab, type, completed) {
 					var curLoadTimestamp = new Timestamp();
 					curLoadTimestamp.start = curTime;
 					curNode.loadTimestamps.push(curLoadTimestamp);
-					var curLoadTimestampDisplay = new Timestamp();
-					curLoadTimestampDisplay.start = curTimeDisplay;
-					curNode.loadTimestampsDisplay.push(curLoadTimestampDisplay);
 
 					var curVisitTimestamp = new Timestamp();
 					curVisitTimestamp.start = curTime; 
 					curNode.visitTimestamps.push(curVisitTimestamp);
 					curNode.visits++;
 					curNode.completedLoads.push( false);
-			        
-					var curVisitTimestampDisplay = new Timestamp();
-					curVisitTimestampDisplay.start = curTimeDisplay;
-					curNode.visitTimestampsDisplay.push(curVisitTimestampDisplay);
 
 					prevNode.visitTimestamps[prevNode.visitTimestamps.length - 1].end = curTime;
 
@@ -199,13 +168,8 @@ function action(tab, type, completed) {
 					var curLoadTimestamp = new Timestamp();
 					curLoadTimestamp.start = curTime;
 					curNode.loadTimestamps.push(curLoadTimestamp);
-					var curLoadTimestampDisplay = new Timestamp();
-					curLoadTimestampDisplay.start = curTimeDisplay;
-					curNode.loadTimestampsDisplay.push(curLoadTimestampDisplay);
 
 					curNode.completedLoads.push( false);
-
-					prevNode.visitTimestamps[prevNode.visitTimestamps.length-1].end = curTime;
 
 					edgeList.push({from: prevNode, to: curNode, type: "onOtherUpdated", color: "black"});
 
@@ -270,4 +234,20 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 chrome.browserAction.onClicked.addListener(function() {
     chrome.tabs.create({'url': chrome.extension.getURL('graphic.html')}, function(tab) {
     });
+});
+
+chrome.idle.setDetectionInterval(30);
+
+chrome.idle.onStateChanged.addListener(function(newState) {
+
+	if ((newState=="idle") || (newState=="locked")) {
+		var tempTimestamp = new Timestamp();
+		tempTimestamp.start = (new Date()).getTime();
+		prevNode.idleTimestamps.push(tempTimestamp);
+	}
+	else if (newState=="active") {
+		prevNode.idleTimestamps[prevNode.idleTimestamps.length - 1].end = (new Date()).getTime();
+	}
+
+
 });

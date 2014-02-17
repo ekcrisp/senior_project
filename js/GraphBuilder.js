@@ -101,10 +101,10 @@ function initializeBuilder(c) {
 
 }
 
-function getNode(title) {
+function getNode(url) {
 
     for (var i = 0; i<nodes.length; i++) {
-        if (nodes[i].name == title) {
+        if (nodes[i].url == url) {
             return nodes[i];
         }
     }
@@ -150,8 +150,8 @@ function generateGraph(data, dataSize) {
     
     for (var i = 1 ; i<data.length; i++) {
     console.log("from: "+data[i].from.title + "  "+ data[i].from.group + " " + data[i].from.groupID + " " + data[i].from.groupSize + "  to: " + data[i].to.title  + "  "+ data[i].to.group + " " + data[i].to.groupID + " " + data[i].to.groupSize );
-        first = getNode(data[i].from.title);
-        second = getNode(data[i].to.title);
+        first = getNode(data[i].from.url);
+        second = getNode(data[i].to.url);
         if ((first!=null) && (second!=null)) {
             addEdge(first, second, data[i].color);
         }
@@ -199,7 +199,7 @@ function generateGraph(data, dataSize) {
 
     curEdgeIndex = edgeList.length - 1;
 
-    curNode = getNode(edgeList[curEdgeIndex].to.title);
+    curNode = getNode(edgeList[curEdgeIndex].to.url);
 
     cameraTarget(curNode);
 
@@ -449,24 +449,20 @@ function onMouseDown(event)
                 if ( intersects.length > 0 ) {
 
                     //intersects[ 0 ].object.material.color.setHex( Math.random() * 0xffffff );
-                    controls.target.set(intersects[0].object.nodey.x,intersects[0].object.nodey.y,intersects[0].object.nodey.z)
-                    //controls.center = new THREE.Vector3(intersects[0].object.nodey.x,intersects[0].object.nodey.y,intersects[0].object.nodey.z);
-                    //camera.lookAt(new THREE.Vector3(intersects[0].object.nodey.x,intersects[0].object.nodey.y,intersects[0].object.nodey.z));
-                    //var particle = new THREE.Sprite( particleMaterial );
-                    //particle.position = intersects[ 0 ].point;
-                    //particle.scale.x = particle.scale.y = 8;
-                    //scene.add( particle );
+                    curNode = intersects[0].object.nodey;
+                    cameraTarget(curNode);
+                    updateSidebar(curNode.relatedNode);
+                    for (var i = 0; i<edgeList.length; i++) {
+                        if (curNode===getNode(edgeList[i].to.url)) {
+                            curEdgeIndex = i;
+                        }
+
+                    }
+                    if (curNode===getNode(edgeList[0].from.url)) {
+                        curEdgeIndex = -1;
+                    }
 
                 }
-
-                /*
-                // Parse all the faces
-                for ( var i in intersects ) {
-
-                    intersects[ i ].face.material[ 0 ].color.setHex( Math.random() * 0xffffff | 0x80000000 );
-
-                }
-                */
     
 }   
 function onMouseUp (event) {
@@ -490,15 +486,17 @@ function goForward() {
     while (!foundNext) {
         if (curEdgeIndex<0) {
             if (edgeList[++curEdgeIndex].type != "onOtherUpdated") {
-                curNode = getNode(edgeList[curEdgeIndex].to.title);
+                curNode = getNode(edgeList[curEdgeIndex].to.url);
                 cameraTarget(curNode);
+                updateSidebar(curNode.relatedNode);
                 foundNext = true;
             }
         }
         else if (curEdgeIndex<(edgeList.length - 1)) {
             if (edgeList[++curEdgeIndex].type != "onOtherUpdated") {
-                curNode = getNode(edgeList[curEdgeIndex].to.title);
+                curNode = getNode(edgeList[curEdgeIndex].to.url);
                 cameraTarget(curNode);
+                updateSidebar(curNode.relatedNode);
                 foundNext = true;
             }
         }
@@ -515,15 +513,17 @@ function goBackward() {
     while (!foundNext) {
         if (curEdgeIndex>0) {
             if (edgeList[--curEdgeIndex].type != "onOtherUpdated") {
-                curNode = getNode(edgeList[curEdgeIndex].to.title);
+                curNode = getNode(edgeList[curEdgeIndex].to.url);
                 cameraTarget(curNode);
+                updateSidebar(curNode.relatedNode);
                 foundNext = true;
             }
         }
         else if (curEdgeIndex==0) {
             if (edgeList[curEdgeIndex].type != "onOtherUpdated") {
-                curNode = getNode(edgeList[--curEdgeIndex + 1].from.title);
+                curNode = getNode(edgeList[--curEdgeIndex + 1].from.url);
                 cameraTarget(curNode);
+                updateSidebar(curNode.relatedNode);
                 foundNext = true;
             }
         }
@@ -542,9 +542,38 @@ function cameraTarget(node) {
 }
 
 function updateSidebar(relatedNode) {
-    $("#title").html(curNode.relatedNode.title);
-    $("#url").html(curNode.relatedNode.url);
-    
+    $("#title").html("TITLE: " + relatedNode.title + "<br>");
+    $("#url").html("URL: " + relatedNode.url + "<br>");
+    $("#visits").html("VISITED " + relatedNode.visits + " TIMES <br>");
+
+    var visitTimestampString = "";
+    for (var i = 0; i<relatedNode.visitTimestamps.length; i++) {
+        visitTimestampString += "start:<br> ";
+        visitTimestampString += (new Date(relatedNode.visitTimestamps[i].start)).toUTCString();
+        visitTimestampString += "<br>end:<br>";
+        visitTimestampString += (new Date(relatedNode.visitTimestamps[i].end)).toUTCString() + "<br>";
+    }
+    $("#visitTimes").html("VISITS:<br> " + visitTimestampString + "<br>");
+
+    var loadTimestampString = "";
+    for (var i = 0; i<relatedNode.loadTimestamps.length; i++) {
+        loadTimestampString += "start:<br>";
+        loadTimestampString += (new Date(relatedNode.loadTimestamps[i].start)).toUTCString();
+        loadTimestampString += "<br>end:<br> ";
+        loadTimestampString += (new Date(relatedNode.loadTimestamps[i].end)).toUTCString() + "<br>";
+    }
+    $("#loadTimes").html("LOADS:<br>" + loadTimestampString + "<br>");
+
+    var idleTimestampString = "";
+    for (var i = 0; i<relatedNode.idleTimestamps.length; i++) {
+        idleTimestampString += "start:<br>";
+        idleTimestampString += (new Date(relatedNode.idleTimestamps[i].start)).toUTCString();
+        idleTimestampString += "<br>end:<br> ";
+        idleTimestampString += (new Date(relatedNode.idleTimestamps[i].end)).toUTCString() + "<br>";
+    }
+    $("#idleTimes").html("IDLE TIMES:<br>" + idleTimestampString + "<br>");
+
+    $("#refreshes").html("REFRESHES: " + relatedNode.refreshes + "<br>");
 
 }
 
