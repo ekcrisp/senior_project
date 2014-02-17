@@ -18,9 +18,7 @@
           "128": "logo128.png" },
   
   "permissions": [
-    "webNavigation",
     "tabs",
-    "history",
     "idle",
     "http://www.elliotkorte.com/"
   ]
