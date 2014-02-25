@@ -21,5 +21,16 @@
     "tabs",
     "idle",
     "http://www.elliotkorte.com/"
+  ],
+
+  "content_scripts": [
+    {
+    "matches": [
+        "http://*/*",
+        "https://*/*"
+        ],
+    "js": ["scrollDetector.js"]
+    }
   ]
+
 }

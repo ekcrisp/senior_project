@@ -1,9 +1,11 @@
-var edgeList = new Array();
-var nodeList = new Array();
-var prevNode = null;
-var prevVisitTimestamp = null;
-var prevLoadTimestamp = null;
-var groupSizes = new Array();
+var edgeList = new Array(),
+nodeList = new Array(),
+prevNode = null,
+prevVisitTimestamp = null,
+prevLoadTimestamp = null,
+groupSizes = new Array(),
+newSession = 1;
+
 
 function Timestamp() {
     this.start = null;
@@ -20,6 +22,7 @@ function Node() {
 	this.loadTimestamps = new Array();
 	this.idleTimestamps = new Array();
 	this.refreshes = new Array();
+	this.scrollPercentages = new Array();
 	this.completedLoads = new Array();
 
 	//properties used for drawing the graph
@@ -28,7 +31,6 @@ function Node() {
     this.nextGroup = 0;
     this.nextGroupID = 0;
     this.groupSize = 0;
-
 
 }
 
@@ -58,6 +60,7 @@ function action(tab, type, completed) {
 		curNode.visitTimestamps.push(curVisitTimestamp);
 		curNode.loadTimestamps.push(curLoadTimestamp);
 		curNode.visits++;
+		curNode.scrollPercentages.push(0);
 		curNode.completedLoads.push(false);
 
 		curNode.group = 0;
@@ -102,6 +105,7 @@ function action(tab, type, completed) {
 					curVisitTimestamp.start = curTime; 
 					curNode.visitTimestamps.push(curVisitTimestamp);
 					curNode.visits++;
+					curNode.scrollPercentages.push(0);
 					curNode.completedLoads.push(false);
 
 					curNode.group = prevNode.nextGroup;
@@ -124,6 +128,7 @@ function action(tab, type, completed) {
 			        curNode.nextGroup = prevNode.nextGroup;
 			        curNode.nextGroupID = 0;
 
+			        curNode.scrollPercentages.push(0);
 			        curNode.completedLoads.push( false);
 
 					nodeList.push(curNode);
@@ -156,6 +161,7 @@ function action(tab, type, completed) {
 					curVisitTimestamp.start = curTime; 
 					curNode.visitTimestamps.push(curVisitTimestamp);
 					curNode.visits++;
+					curNode.scrollPercentages.push(0);
 					curNode.completedLoads.push( false);
 
 					prevNode.visitTimestamps[prevNode.visitTimestamps.length - 1].end = curTime;
@@ -168,7 +174,7 @@ function action(tab, type, completed) {
 					var curLoadTimestamp = new Timestamp();
 					curLoadTimestamp.start = curTime;
 					curNode.loadTimestamps.push(curLoadTimestamp);
-
+					curNode.scrollPercentages.push(0);
 					curNode.completedLoads.push( false);
 
 					edgeList.push({from: prevNode, to: curNode, type: "onOtherUpdated", color: "black"});
@@ -192,22 +198,6 @@ function action(tab, type, completed) {
 
 	}
 }
-
-
-
-
-chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse) {
-	if (request.greeting == "log"){
-        sendResponse({message: "no log at this time"});
-    }
-    else if (request.greeting == "graphData") {
-    	for (var i =0; i<nodeList.length; i++) {
-    		nodeList[i].groupSize = groupSizes[nodeList[i].group];
-    	}
-        sendResponse({data: edgeList, size: nodeList.length});
-    }
-});
 
 
 
@@ -251,3 +241,48 @@ chrome.idle.onStateChanged.addListener(function(newState) {
 
 
 });
+
+
+chrome.windows.onRemoved.addListener(function(windowId) {
+
+    var myData = JSON.stringify(edgeList);
+    $.ajax({
+        type: "POST",
+        url: "http://www.elliotkorte.com/request.php",
+        data: {'myData':myData, 'computerID': 99990001 * 5, 'newSession':newSession},
+        success: function() {
+            console.log("SUCCESSSSS");
+        }
+    });
+
+    newSession = 0;
+
+});
+
+
+
+
+chrome.runtime.onMessage.addListener(
+  function(request, sender, sendResponse) {
+	if (request.greeting == "log"){
+        sendResponse({message: "no log at this time"});
+    }
+    else if (request.greeting == "graphData") {
+    	for (var i =0; i<nodeList.length; i++) {
+    		nodeList[i].groupSize = groupSizes[nodeList[i].group];
+    	}
+        sendResponse({data: edgeList, size: nodeList.length});
+    }
+    else if (request.greeting == "pageScroll") {
+    	var curNode = findNode(request.url);
+    	if (prevNode !== curNode) {
+    		console.log("SCROLL NOT ON PREVNODE, SHOULD NEVER HAPPEN");
+    	}
+       	if (curNode.scrollPercentages[curNode.scrollPercentages.length - 1] < request.percent) {
+    		curNode.scrollPercentages[curNode.scrollPercentages.length - 1] = request.percent;
+    	}
+    };
+});
+
+
+

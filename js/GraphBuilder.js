@@ -573,7 +573,17 @@ function updateSidebar(relatedNode) {
     }
     $("#idleTimes").html("IDLE TIMES:<br>" + idleTimestampString + "<br>");
 
-    $("#refreshes").html("REFRESHES: " + relatedNode.refreshes + "<br>");
+    var refreshesString = "";
+    for (var i = 0; i<relatedNode.refreshes.length; i++) {
+        refreshesString+= relatedNode.refreshes[i] + ", ";
+    }
+    $("#refreshes").html("REFRESHES: " + refreshesString + "<br>");
+
+    var scrollsString = "";
+    for (var i = 0; i<relatedNode.scrollPercentages.length; i++) {
+        scrollsString+= relatedNode.scrollPercentages[i] + ", ";
+    }
+    $("#scrolls").html("PAGE SCROLLS: " + scrollsString + "<br>");
 
 }
 
